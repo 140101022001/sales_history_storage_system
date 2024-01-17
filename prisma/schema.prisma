@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Roles {
+  ADMIN
+  COMPANY_CONSULTANT
+  ENGINEER_CONSULTANT
+}
+
+model Managers {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  firstname String
+  lastname String
+  firstname_kana String?
+  lastname_kana String?
+  email String @unique
+  emailVerified DateTime?
+  password String
+  image String?
+  role Roles @default(COMPANY_CONSULTANT)
+  
+  engineers Engineers[]
+  companies Companies[]
+  account Account[]
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+}
+
+model Account {
+  id                 String @id @default(auto()) @map("_id") @db.ObjectId
+  managerId          String @db.ObjectId
+  providerType       String
+  providerId         String
+  providerAccountId  String
+  refreshToken       String?
+  accessToken        String?
+  accessTokenExpires DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  manager            Managers      @relation(fields: [managerId], references: [id])
+
+  @@unique([providerId, providerAccountId])
+}
+
+enum Genders {
+  MALE
+  FEMALE
+}
+
+model Engineers {
+  // base information
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  engineer_id Int
+  firstname String
+  lastname String
+  firstname_kana String?
+  lastname_kana String?
+  gender Genders @default(MALE)
+  birthday DateTime?
+  country String?
+  avatar_url String?
+  phone String?
+
+  jlpt String?
+  skills String?
+  job_type String?
+  job_experience String?
+
+  managerId String @db.ObjectId
+  manager Managers @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  interviews Interview[]
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  @@index([managerId])
+}
+
+model Companies {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  company_id Int
+  name String
+  url String
+  email String
+  phone String
+  
+  managerId String @db.ObjectId
+  manager Managers @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  jobs Jobs[]
+  interviews Interview[]
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  @@index([managerId])
+}
+
+model Jobs {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  title String?
+  interview_format String?
+  business_model String?
+  request_skills String?
+  request_experience String?
+  request_jlpt String?
+  location String?
+  current_state String?
+  salary String?
+  situation String?
+
+  companyId String @db.ObjectId
+  company Companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  @@index([companyId])
+}
+
+enum ApplyStatus {
+  WAITING
+  INTERVIEWING
+  WORKING
+}
+
+model Interview {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  title String
+
+  interview_date DateTime
+  interview_time DateTime
+
+  engineerId String @db.ObjectId
+  engineer Engineers @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+
+  companyId String @db.ObjectId
+  company Companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  status ApplyStatus @default(WAITING)
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  @@index([engineerId])
+  @@index([companyId])
+}
